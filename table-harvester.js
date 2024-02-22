@@ -33,7 +33,13 @@ const argv = yargs
     alias: 'a',
     describe: 'Attributes to extract',
     type: 'array',
-    default: ['alt', 'value', 'href'],
+    default: ['alt', 'value', 'href', 'title'],
+  })
+  .option('elements', {
+    alias: 'e',
+    describe: 'HTML elements to extract from cells',
+    type: 'array',
+    default: ['a', 'input', 'span'],
   })
   .option('log', {
     alias: 'l',
@@ -84,6 +90,7 @@ async function main() {
       let headers = [];
       const tableData = [];
       let headerExtracted = false;
+      let allHeaders = new Set(); // Declare allHeaders here
     
       $('tr', table).each((rowIndex, row) => {
         // Skip rows until headers are found
@@ -94,29 +101,60 @@ async function main() {
               headers.push(normalizeColumnName(headerText)); // Normalize the column name
             });
             headerExtracted = true;
-            console.log(`Extracted headers: ${headers}`); // Debugging
           }
           return; // Skip to the next row
         }
     
         // Process data rows
         const rowData = {};
+        
         $('td', row).each((colIndex, cell) => {
+          // Extract text content from the cell
           const cellText = $(cell).text().trim();
-          const columnName = headers[colIndex] || `Column${colIndex}`;
-          rowData[columnName] = cellText;
-          // ... [extract specified attributes] ...
+          const baseColumnName = headers[colIndex] || `Column${colIndex}`;
+          rowData[`${baseColumnName}_content`] = cellText;
+          allHeaders.add(`${baseColumnName}_content`);
+        
+          // Extract specified attributes from the cell
+          argv.attributes.forEach(attribute => {
+            const attrValue = $(cell).attr(attribute);
+            if (attrValue) {
+              const attrColumnName = `${baseColumnName}_${attribute}`;
+              rowData[attrColumnName] = attrValue;
+              allHeaders.add(attrColumnName);
+            }
+          });
+        
+          // Extract specified elements and their text/attributes
+          argv.elements.forEach(element => {
+            $(cell).find(element).each((elIndex, el) => {
+              const elText = $(el).text().trim();
+              const elColumnName = `${baseColumnName}_${element}${elIndex}_content`;
+              rowData[elColumnName] = elText;
+              allHeaders.add(elColumnName);
+        
+              argv.attributes.forEach(attribute => {
+                const elAttrValue = $(el).attr(attribute);
+                if (elAttrValue) {
+                  const elAttrColumnName = `${baseColumnName}_${element}${elIndex}_${attribute}`;
+                  rowData[elAttrColumnName] = elAttrValue;
+                  allHeaders.add(elAttrColumnName);
+                }
+              });
+            });
+          });
         });
     
         if (Object.keys(rowData).length > 0) {
-          console.log(`Row data: ${JSON.stringify(rowData)}`); // Debugging
           tableData.push(rowData);
         }
       });
     
+      // Convert Set to Array for headers
+      const headersArray = Array.from(allHeaders);
+
       if (tableData.length > 0) {
-        // Convert tableData to CSV
-        const parser = new Parser({ fields: headers.length > 0 ? headers : undefined });
+        const parser = new Parser({ fields: headersArray });
         const csv = parser.parse(tableData);
     
         // Define output file path
