@@ -86,7 +86,14 @@ async function main() {
     $('table').each((index, table) => {
       // Remove unwanted tags inside the table
       $(table).find('script, style, noscript').remove();
-    
+      
+      // Find preceding header element or an element with a header class
+      let tableName = '';
+      const prevHeader = $(table).prevAll('h1, h2, h3, h4, h5, h6, .header').first();
+      if (prevHeader.length) {
+        tableName = normalizeColumnName(prevHeader.text().split(':')[0]); // Extract text and normalize
+      }
+
       let headers = [];
       const tableData = [];
       let headerExtracted = false;
@@ -158,7 +165,10 @@ async function main() {
         const csv = parser.parse(tableData);
     
         // Define output file path
-        const outputFileName = path.basename(file, '.html') + `_table_${index}.csv`;
+        const baseOutputFileName = path.basename(file, '.html');
+        const outputFileName = tableName ? 
+                               `${baseOutputFileName}.table_${index}.${tableName}.csv` :
+                               `${baseOutputFileName}.table_${index}.csv`;
         const outputFilePath = path.join(argv.output, outputFileName);
     
         // Write CSV to file
