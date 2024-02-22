@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 
+
 // --------------------------------------------------------------- //
 // table-harvester.js
 // Description: A script for extracting table data from HTML files
+// and converting it into CSV format.
 // --------------------------------------------------------------- //
+
 
 // --------------------------------------------------------------- //
 // Module Imports
@@ -16,7 +19,12 @@ const { Parser } = require('json2csv');
 const jschardet = require('jschardet');
 const iconv = require('iconv-lite');
 
-// Setup yargs for command-line argument parsing
+
+// --------------------------------------------------------------- //
+// Command-line Argument Configuration
+// --------------------------------------------------------------- //
+// Configures command-line arguments for the script using yargs.
+// This allows users to specify input, output, and other options.
 const argv = yargs
   .usage('Usage: $0 -i [input] -o [output] -a [attributes] -l [log]')
   .option('input', {
@@ -63,23 +71,46 @@ const argv = yargs
   .help()
   .argv;
 
-// Function to check if a path is a directory
+// --------------------------------------------------------------- //
+// Utility Functions
+// --------------------------------------------------------------- //
+
+/**
+ * Checks if a given path is a directory.
+ * @param {string} source - Path to check.
+ * @returns {boolean} True if the path is a directory, false otherwise.
+ */
 const isDirectory = source => fs.lstatSync(source).isDirectory();
 
-// Function to read HTML file with correct encoding
+/**
+ * Reads an HTML file with the correct encoding.
+ * @param {string} filePath - The path to the HTML file.
+ * @returns {string} The content of the file in UTF-8 encoding.
+ */
 function readHtmlFile(filePath) {
   const fileBuffer = fs.readFileSync(filePath);
   const detectedEncoding = jschardet.detect(fileBuffer).encoding;
   return iconv.decode(fileBuffer, detectedEncoding);
 }
 
-// Function to get HTML files from a directory or a single file
+/**
+ * Retrieves HTML files from a directory or returns a single file in an array.
+ * @param {string} source - Directory path or file path.
+ * @returns {Array<string>} Array of file paths.
+ */
 const getHtmlFiles = source =>
   isDirectory(source)
     ? fs.readdirSync(source).filter(file => file.endsWith('.html')).map(file => path.join(source, file))
     : [source];
 
-// Function to normalize column names
+/**
+ * Normalizes a given string to a column name in snake_case.
+ * This involves converting to lower case, replacing non-alphanumeric 
+ * characters with underscores, and trimming leading and trailing underscores.
+ *
+ * @param {string} name - The string to be normalized.
+ * @returns {string} The normalized column name in snake_case.
+ */
 function normalizeColumnName(name) {
   // Convert to lower case
   let normalized = name.toLowerCase();
@@ -96,7 +127,14 @@ function normalizeColumnName(name) {
   return normalized;
 }
 
-// Main function
+
+// --------------------------------------------------------------- //
+// Main Script Execution
+// --------------------------------------------------------------- //
+/**
+ * Main function to execute the script.
+ * Processes each HTML file and extracts tables to CSV format.
+ */
 async function main() {
   const htmlFiles = getHtmlFiles(argv.input);
 
