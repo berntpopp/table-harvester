@@ -13,6 +13,8 @@ const path = require('path');
 const cheerio = require('cheerio');
 const yargs = require('yargs');
 const { Parser } = require('json2csv');
+const jschardet = require('jschardet');
+const iconv = require('iconv-lite');
 
 // Setup yargs for command-line argument parsing
 const argv = yargs
@@ -41,6 +43,18 @@ const argv = yargs
     type: 'array',
     default: ['a', 'input', 'span'],
   })
+  .option('headerSelectors', {
+    alias: 'hs',
+    describe: 'Selectors to identify header elements preceding tables',
+    type: 'array',
+    default: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', '.header'],
+  })
+  .option('tableNameSeparator', {
+    alias: 'ts',
+    describe: 'Separator for extracting table name from header text',
+    type: 'string',
+    default: ':',
+  })
   .option('log', {
     alias: 'l',
     describe: 'Log file path',
@@ -51,6 +65,13 @@ const argv = yargs
 
 // Function to check if a path is a directory
 const isDirectory = source => fs.lstatSync(source).isDirectory();
+
+// Function to read HTML file with correct encoding
+function readHtmlFile(filePath) {
+  const fileBuffer = fs.readFileSync(filePath);
+  const detectedEncoding = jschardet.detect(fileBuffer).encoding;
+  return iconv.decode(fileBuffer, detectedEncoding);
+}
 
 // Function to get HTML files from a directory or a single file
 const getHtmlFiles = source =>
@@ -80,7 +101,7 @@ async function main() {
   const htmlFiles = getHtmlFiles(argv.input);
 
   htmlFiles.forEach(file => {
-    const htmlContent = fs.readFileSync(file, 'utf-8');
+    const htmlContent = readHtmlFile(file);
     const $ = cheerio.load(htmlContent);
 
     $('table').each((index, table) => {
@@ -89,9 +110,11 @@ async function main() {
       
       // Find preceding header element or an element with a header class
       let tableName = '';
-      const prevHeader = $(table).prevAll('h1, h2, h3, h4, h5, h6, .header').first();
+      const headerSelector = argv.headerSelectors.join(', ');
+      const prevHeader = $(table).prevAll(headerSelector).first();
       if (prevHeader.length) {
-        tableName = normalizeColumnName(prevHeader.text().split(':')[0]); // Extract text and normalize
+        const headerText = prevHeader.text().split(argv.tableNameSeparator)[0];
+        tableName = normalizeColumnName(headerText); // Extract text and normalize
       }
 
       let headers = [];
