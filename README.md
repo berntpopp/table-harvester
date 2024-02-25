@@ -1,5 +1,7 @@
 # Table Harvester
 
+![table-harvester_logo](static/img/table-harvester_logo.png)
+
 ## Description
 
 Table Harvester is a Node.js script designed for extracting table data from HTML files and converting it to CSV format. This utility script is particularly useful for parsing structured table data embedded in HTML documents and converting them into a more accessible and manipulable format like CSV.
