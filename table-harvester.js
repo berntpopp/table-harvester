@@ -26,7 +26,7 @@ const iconv = require('iconv-lite');
 // Configures command-line arguments for the script using yargs.
 // This allows users to specify input, output, and other options.
 const argv = yargs
-  .usage('Usage: $0 -i [input] -o [output] -a [attributes] -l [log]')
+  .usage('# table-harvester.js\n# Description: A script for extracting table data from HTML files\n# and converting it into CSV format.\n#    ____\n#\  i | o|\n#|>#######\n#/(_______)\n#\nUsage: $0 -i [input] -o [output] -a [attributes] -l [log]')
   .option('input', {
     alias: 'i',
     describe: 'Input HTML file or directory',
